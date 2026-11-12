@@ -324,7 +324,7 @@ const pxFont = (g, text, x, y, color, size = 8, align = 'left') => { const s = P
 
 /* ---------- Faisceaux : un petit robot dans une salle d'essai ; des émetteurs dans les murs s'allument (trait clignotant),
    puis tirent. On se glisse entre les rayons, on ramasse les piles. 60 images par seconde ---------- */
-const FX = {W: 128, H: 142, HUD: 14, WALL: 8, SP: .95, DASH: 2.7, R: 3.5};
+const FX = {W: 128, H: 142, HUD: 14, WALL: 8, SP: 1.15, DASH: 2.7, R: 3.5};
 FX.X0 = FX.WALL; FX.X1 = FX.W - FX.WALL; FX.Y0 = FX.HUD + FX.WALL; FX.Y1 = FX.H - FX.WALL;  // l'intérieur de la salle (112 x 112)
 const fxs = gstore('faisceaux', {games: 0, cells: 0, secs: 0});
 let fx = null, fxac = null;
@@ -360,7 +360,7 @@ const fxLineHit = (b, x, y) => Math.abs((b.o === 'h' ? y : x) - b.p) < b.w / 2 +
 function fxRayHit(b, x, y, a) { const dx = x - b.ex, dy = y - b.ey, c = Math.cos(a), s = Math.sin(a); return dx * c + dy * s > 0 && Math.abs(dx * s - dy * c) < b.w / 2 + FX.R; }
 const fxAng = b => b.a0 + (b.a1 - b.a0) * Math.min(1, Math.max(0, (fx.t - b.at - b.warn) / b.fire));
 function fxSpawn() {
-  const d = fxDiff(), r = fx.rnd, warn = Math.round(70 - 30 * d), fire = 34, at = fx.t, ix = FX.X1 - FX.X0;
+  let d = fxDiff(), r = fx.rnd, warn = Math.round(70 - 30 * d), fire = 34, at = fx.t, ix = FX.X1 - FX.X0;
   const line = (o, p, w = 4) => fx.beams.push({kind: o, o, p, w, warn, fire, at});
   const roll = r();
   if (roll < .3 - d * .1) { const o = r() < .5 ? 'h' : 'v'; line(o, (o === 'h' ? FX.Y0 : FX.X0) + 14 + r() * (ix - 28), r() < d * .6 ? 8 : 4); }
@@ -368,11 +368,11 @@ function fxSpawn() {
     const o = r() < .5 ? 'h' : 'v', n = 3 + Math.floor(r() * (2 + d * 2)), gap = Math.floor(r() * n), lo = o === 'h' ? FX.Y0 : FX.X0;
     for (let i = 0; i < n; i++) if (i !== gap) line(o, lo + (i + .5) * ix / n, 6);
   }
-  else if (roll < .75) { line('h', fx.y); line('v', fx.x); }  // la croix, visée sur le robot : il faut bouger
+  else if (roll < .75) { const w0 = warn; warn += 18; line('h', fx.y); line('v', fx.x); warn = w0; }  // la croix, visée sur le robot : il faut bouger en diagonale, d'où une alerte plus longue
   else {  // le balayage : un rayon part d'un mur et tourne de 60 à 100 degrés (plus au plus dur)
-    const side = Math.floor(r() * 4), t = .2 + r() * .6, sweep = (60 + r() * 40 * (1 + d)) * Math.PI / 180 * (r() < .5 ? 1 : -1);
+    const side = Math.floor(r() * 4), t = .2 + r() * .6, sweep = (50 + r() * 30 * (1 + d)) * Math.PI / 180 * (r() < .5 ? 1 : -1);
     const [ex, ey, base] = [[FX.X0 + t * ix, FX.Y0, Math.PI / 2], [FX.X1, FX.Y0 + t * ix, Math.PI], [FX.X0 + t * ix, FX.Y1, -Math.PI / 2], [FX.X0, FX.Y0 + t * ix, 0]][side];
-    fx.beams.push({kind: 'r', ex, ey, a0: base - sweep / 2, a1: base + sweep / 2, w: 4, warn: warn + 10, fire: Math.round(70 - 20 * d), at});
+    fx.beams.push({kind: 'r', ex, ey, a0: base - sweep / 2, a1: base + sweep / 2, w: 4, warn: warn + 10, fire: Math.round(Math.abs(sweep) / .009), at});  // il tourne à 0,009 rad par image : à 80 px du mur, moins vite que le robot
   }
   fxBeep(880, .05, 'square', 0, .025);
 }
@@ -396,7 +396,7 @@ function fxUpdate() {
   const sp = fx.dash > 0 ? (fx.dash--, FX.DASH) : FX.SP;
   fx.x = Math.min(FX.X1 - 5, Math.max(FX.X0 + 5, fx.x + dx * sp)); fx.y = Math.min(FX.Y1 - 5, Math.max(FX.Y0 + 5, fx.y + dy * sp));
   // les rayons : alerte, tir, fin
-  if (--fx.next <= 0) { fxSpawn(); fx.next = Math.round(110 - 62 * fxDiff() + fx.rnd() * 30); }
+  if (--fx.next <= 0) { fxSpawn(); fx.next = Math.round(Math.max(70 - 30 * fxDiff() + 14, 115 - 55 * fxDiff() + fx.rnd() * 30)); }  // une seule alerte à la fois : deux rayons qui tombent ensemble étaient impossibles à éviter
   for (const b of fx.beams) {
     const age = fx.t - b.at;
     if (age === b.warn) fxBeep(b.kind === 'r' ? 140 : 110, .25, 'sawtooth', 60, .03);
