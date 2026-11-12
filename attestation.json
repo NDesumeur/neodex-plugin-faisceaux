@@ -1,0 +1,9 @@
+{
+  "pluginId": "neodex.faisceaux",
+  "repo": "NDesumeur/neodex-plugin-faisceaux",
+  "version": "1.0.0",
+  "sha256": "c28441a17ce42c218a6431137873be8fbae22ff420499eaa58d3ad6b69d46caa",
+  "approvedAt": "2026-11-12T12:24:43.207Z",
+  "neobase": ">=4.0.0",
+  "signature": "vH7EISQSaylMbSGNz/wXka/Ur+XOZ3ya3ng8OkPQYtc7mqnsK1bw9Qnx7vPajCl4vnF4wHzqHL3DaJTeB6unDA=="
+}
