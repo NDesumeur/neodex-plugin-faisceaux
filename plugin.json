@@ -1,0 +1,22 @@
+{
+  "id": "neodex.faisceaux",
+  "name": "Faisceaux",
+  "version": "1.0.0",
+  "author": "NDesumeur",
+  "description": "Jeu d'esquive : un petit robot doit survivre dans une salle d'essai où des émetteurs tirent des rayons. Un trait qui clignote annonce chaque tir : lignes, grilles avec un passage, croix visées sur toi et balayages qui tournent. Un élan pour filer d'un coup, des piles à ramasser, de plus en plus de rayons. Score, temps et record.",
+  "icon": "icon.png",
+  "entry": "index.js",
+  "view": "faisceaux",
+  "neobase": ">=4.0.0",
+  "type": "app",
+  "category": "Jeux",
+  "syncMode": "progression",
+  "syncInfo": "Record.",
+  "mobile": false,
+  "system": false,
+  "dependencies": {},
+  "sdk": "2.1.0",
+  "permissions": [
+    "storage"
+  ]
+}
