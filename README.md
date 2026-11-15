@@ -10,6 +10,7 @@ Un jeu d'esquive en pixel art : un petit robot doit survivre dans une salle d'es
 - **Maj** ou **X** : élan, le robot file d'un coup. La jauge jaune en haut montre quand il est rechargé.
 - **Souris** ou **doigt** : le robot suit le pointeur tant que tu appuies ; deux appuis rapides donnent l'élan.
 - **P** ou **Échap** : pause.
+- **Plein écran** : le bouton du même nom ; Échap pour en sortir.
 
 ## Comment ça marche
 
@@ -19,6 +20,9 @@ Un jeu d'esquive en pixel art : un petit robot doit survivre dans une salle d'es
 - Les **croix** visent l'endroit où tu es au moment de l'alerte : il faut bouger.
 - Les **balayages** partent d'un mur et tournent. Les deux traits de l'alerte montrent l'angle qu'ils couvrent : sors de cet angle.
 - Les **piles** apparaissent loin de toi : 50 points chacune. Chaque seconde survécue donne 10 points.
+- Les **bonus** apparaissent toutes les 10 à 16 secondes et restent 8 secondes (ils clignotent avant de partir) :
+  - la **bulle bleue** : un bouclier entoure le robot et encaisse le prochain rayon, puis il clignote un instant sans rien craindre ;
+  - le **sablier violet** : pendant 5 secondes, les rayons (alertes, tirs et balayages) vont deux fois moins vite, toi non. La salle se teinte de violet et une jauge sous le sablier montre le temps qui reste.
 - Les rayons arrivent de plus en plus souvent, avec moins d'alerte, jusqu'à 100 secondes.
 
 ## Statistiques

@@ -5,13 +5,15 @@ const HTML = `<div class="appWrap wide">
   <div class="gMain"><div class="gameBox"><canvas id="fxCanvas" width="128" height="142" role="img" aria-label="Faisceaux"></canvas></div>
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="fxStats"></div></div>
-      <div class="row"><button class="btn main" id="fxNew">NOUVELLE PARTIE</button></div>
-      <div class="hint">Un trait pointillé qui clignote annonce un rayon : il tire quand le clignotement s'accélère puis s'arrête. Les croix visent l'endroit où tu es, les balayages tournent depuis un mur (les deux traits montrent l'angle couvert), les grilles laissent toujours un passage. L'élan te fait filer d'un coup, puis se recharge (la jauge jaune en haut). Ramasse les piles : 50 points chacune, plus 10 points par seconde.</div>
+      <div class="row"><button class="btn main" id="fxNew">NOUVELLE PARTIE</button><button class="btn" id="fxFs">PLEIN ÉCRAN</button></div>
+      <div class="hint">Un trait pointillé qui clignote annonce un rayon : il tire quand le clignotement s'accélère puis s'arrête. Les croix visent l'endroit où tu es, les balayages tournent depuis un mur (les deux traits montrent l'angle couvert), les grilles laissent toujours un passage. L'élan te fait filer d'un coup, puis se recharge (la jauge jaune en haut). Ramasse les piles : 50 points chacune, plus 10 points par seconde.</div><div class="hint">Des bonus apparaissent de temps en temps : la bulle bleue est un bouclier qui encaisse un rayon, le sablier violet ralentit les rayons pendant 5 secondes (pas toi).</div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
 .gameBox{display:grid;place-items:center;padding:10px;background:#05010b;flex:0 0 auto;position:relative}
 .gameBox canvas{height:min(72vh,710px);width:auto;aspect-ratio:128/142;image-rendering:pixelated;cursor:var(--cp,pointer);touch-action:none}
+.gameBox:fullscreen{padding:0}
+.gameBox:fullscreen canvas{height:min(100vh,calc(100vw * 142 / 128))}
 .gSide{display:flex;flex-direction:column;gap:14px;flex:1;min-width:250px;max-width:420px}
 .gSide .sysCard{display:flex;flex-direction:column}
 .gStats{display:grid;grid-template-columns:1fr auto;gap:4px 14px}
@@ -338,6 +340,9 @@ const FX_SPR = FX_BOT.map(r => [fxArt(r, false, FX_PAL), fxArt(r, true, FX_PAL)]
 // la pile à ramasser, qui scintille
 const FX_CELL = [['.kkk.', 'kwlwk', 'klllk', 'kcllk', 'kcclk', 'kccck', '.kkk.'], ['.kkk.', 'kllwk', 'klllk', 'kclwk', 'kcclk', 'kccck', '.kkk.']]
   .map(r => fxArt(r, false, {k: '#14101c', w: '#ffffff', l: '#9ef07a', c: '#3aa04a'}));
+const FX_BON = {shield: [['..kkk..', '.kbbbk.', 'kbwbbbk', 'kbbbbbk', 'kbbbbBk', '.kbbBk.', '..kkk..'], ['..kkk..', '.kbbbk.', 'kbbwbbk', 'kbbbbbk', 'kbbbbBk', '.kbBBk.', '..kkk..']],
+  slow: [['kkkkk', 'kpppk', '.kyk.', '..k..', '.kpk.', 'kyyyk', 'kkkkk'], ['kkkkk', 'kpypk', '.kpk.', '..k..', '.kyk.', 'kyyyk', 'kkkkk']]};
+for (const k in FX_BON) FX_BON[k] = FX_BON[k].map(r => fxArt(r, false, {k: '#14101c', b: '#4ac8ff', B: '#2a6ac8', w: '#ffffff', p: '#b070ff', y: '#ffd84a'}));
 // le sol : des plaques de métal rivetées
 const FX_FLOOR = (() => { const c = el('canvas'); c.width = c.height = 16; const g = c.getContext('2d');
   px(g, '#2a2836', 0, 0, 16, 16); px(g, '#34323f', 1, 1, 14, 1); px(g, '#34323f', 1, 1, 1, 14); px(g, '#201e2a', 1, 15, 15, 1); px(g, '#201e2a', 15, 1, 1, 15);
@@ -346,21 +351,21 @@ const FX_FLOOR = (() => { const c = el('canvas'); c.width = c.height = 16; const
 const fxDiff = () => Math.min(1, fx.t / (60 * 100));  // au plus dur après 100 s
 const fxSecs = () => Math.floor(fx.t / 60);
 const fxScore = () => fxSecs() * 10 + fx.cells * 50;
-function fxBeep(f, d, type = 'square', slide = 0, vol = .04) { try { fxac ??= new AudioContext(); const o = fxac.createOscillator(), g = fxac.createGain(), t = fxac.currentTime; o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(fxac.destination); o.start(t); o.stop(t + d); } catch {} }
+let fxBeep = function (f, d, type = 'square', slide = 0, vol = .04) { try { fxac ??= new AudioContext(); const o = fxac.createOscillator(), g = fxac.createGain(), t = fxac.currentTime; o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(fxac.destination); o.start(t); o.stop(t + d); } catch {} }
 // une nouvelle partie garde le même objet : la boucle du jeu (gameLoop) continue de tourner dessus
 const renew = (old, o) => { if (!old) return o; for (const k of Object.keys(old)) if (k !== 'raf') delete old[k]; return Object.assign(old, o); };
 function fxNew() {
   const g = fx?.g;
-  fx = renew(fx, {g, mode: 'ready', tick: 0, seen: 0, t: 0, x: FX.W / 2, y: (FX.Y0 + FX.Y1) / 2, face: 0, keys: new Set(), dash: 0, dashCd: 0, beams: [], next: 90, cells: 0, cell: null, cellT: 120, dead: 0, record: false, bits: [], rnd: seeded(Date.now() % 1e9)});
+  fx = renew(fx, {g, mode: 'ready', tick: 0, seen: 0, t: 0, x: FX.W / 2, y: (FX.Y0 + FX.Y1) / 2, face: 0, keys: new Set(), dash: 0, dashCd: 0, beams: [], next: 90, cells: 0, cell: null, cellT: 120, bt: 0, bonus: null, bonusT: 600, shield: false, inv: 0, slow: 0, boom: 0, dead: 0, record: false, bits: [], rnd: seeded(Date.now() % 1e9)});
   fxInfo();
 }
 // les rayons : 'h' / 'v' = une ligne d'un mur à l'autre (p = sa position, w = son épaisseur) ; 'r' = un rayon qui balaie un arc depuis un émetteur du mur
 // warn = temps d'alerte (le trait clignote), fire = durée du tir
 const fxLineHit = (b, x, y) => Math.abs((b.o === 'h' ? y : x) - b.p) < b.w / 2 + FX.R;
 function fxRayHit(b, x, y, a) { const dx = x - b.ex, dy = y - b.ey, c = Math.cos(a), s = Math.sin(a); return dx * c + dy * s > 0 && Math.abs(dx * s - dy * c) < b.w / 2 + FX.R; }
-const fxAng = b => b.a0 + (b.a1 - b.a0) * Math.min(1, Math.max(0, (fx.t - b.at - b.warn) / b.fire));
+const fxAng = b => b.a0 + (b.a1 - b.a0) * Math.min(1, Math.max(0, (fx.bt - b.at - b.warn) / b.fire));
 function fxSpawn() {
-  let d = fxDiff(), r = fx.rnd, warn = Math.round(70 - 30 * d), fire = 34, at = fx.t, ix = FX.X1 - FX.X0;
+  let d = fxDiff(), r = fx.rnd, warn = Math.round(70 - 30 * d), fire = 34, at = fx.bt, ix = FX.X1 - FX.X0;
   const line = (o, p, w = 4) => fx.beams.push({kind: o, o, p, w, warn, fire, at});
   const roll = r();
   if (roll < .3 - d * .1) { const o = r() < .5 ? 'h' : 'v'; line(o, (o === 'h' ? FX.Y0 : FX.X0) + 14 + r() * (ix - 28), r() < d * .6 ? 8 : 4); }
@@ -385,7 +390,7 @@ function fxDie() {
 function fxUpdate() {
   if (fx.mode === 'over') { fx.dead++; for (const b of fx.bits) { b.x += b.vx; b.y += b.vy; b.vx *= .94; b.vy *= .94; b.t--; } fx.bits = fx.bits.filter(b => b.t > 0); return; }
   if (fx.mode !== 'play') return;
-  fx.t++;
+  fx.t++; const step = fx.slow > 0 ? .5 : 1; fx.bt += step; if (fx.slow > 0) fx.slow--; if (fx.inv > 0) fx.inv--; if (fx.boom > 0) fx.boom--;
   // le déplacement (8 directions, ou vers le pointeur) et l'élan, à recharger
   const k = fx.keys, on = (...n) => n.some(x => k.has(x));
   let dx = (on('ArrowRight', 'd') ? 1 : 0) - (on('ArrowLeft', 'q', 'a') ? 1 : 0), dy = (on('ArrowDown', 's') ? 1 : 0) - (on('ArrowUp', 'z', 'w') ? 1 : 0);
@@ -396,21 +401,30 @@ function fxUpdate() {
   const sp = fx.dash > 0 ? (fx.dash--, FX.DASH) : FX.SP;
   fx.x = Math.min(FX.X1 - 5, Math.max(FX.X0 + 5, fx.x + dx * sp)); fx.y = Math.min(FX.Y1 - 5, Math.max(FX.Y0 + 5, fx.y + dy * sp));
   // les rayons : alerte, tir, fin
-  if (--fx.next <= 0) { fxSpawn(); fx.next = Math.round(Math.max(70 - 30 * fxDiff() + 14, 115 - 55 * fxDiff() + fx.rnd() * 30)); }  // une seule alerte à la fois : deux rayons qui tombent ensemble étaient impossibles à éviter
+  if ((fx.next -= step) <= 0) { fxSpawn(); fx.next = Math.round(Math.max(70 - 30 * fxDiff() + 14, 115 - 55 * fxDiff() + fx.rnd() * 30)); }  // une seule alerte à la fois : deux rayons qui tombent ensemble étaient impossibles à éviter
   for (const b of fx.beams) {
-    const age = fx.t - b.at;
+    const age = fx.bt - b.at;
     if (age === b.warn) fxBeep(b.kind === 'r' ? 140 : 110, .25, 'sawtooth', 60, .03);
-    if (age >= b.warn && age < b.warn + b.fire && (b.kind === 'r' ? fxRayHit(b, fx.x, fx.y, fxAng(b)) : fxLineHit(b, fx.x, fx.y))) return fxDie();
+    if (age >= b.warn && age < b.warn + b.fire && (b.kind === 'r' ? fxRayHit(b, fx.x, fx.y, fxAng(b)) : fxLineHit(b, fx.x, fx.y))) { if (fx.inv) continue; if (!fx.shield) return fxDie(); fx.shield = false; fx.inv = 50; fx.boom = 20; fxBeep(600, .3, 'square', 120, .06); }
   }
-  fx.beams = fx.beams.filter(b => fx.t - b.at < b.warn + b.fire);
+  fx.beams = fx.beams.filter(b => fx.bt - b.at < b.warn + b.fire);
   // la pile : posée loin du robot, ramassée en passant dessus
   if (!fx.cell && --fx.cellT <= 0) { let x, y, n = 0; do { x = FX.X0 + 12 + fx.rnd() * (FX.X1 - FX.X0 - 24); y = FX.Y0 + 12 + fx.rnd() * (FX.Y1 - FX.Y0 - 24); } while (Math.hypot(x - fx.x, y - fx.y) < 40 && n++ < 20); fx.cell = {x, y}; }
+  // les bonus : un toutes les 10 à 16 s, posé loin du robot, il reste 8 s ; bouclier (un rayon encaissé) ou ralenti des rayons (5 s)
+  if (!fx.bonus && --fx.bonusT <= 0) { let x, y, n = 0; do { x = FX.X0 + 12 + fx.rnd() * (FX.X1 - FX.X0 - 24); y = FX.Y0 + 12 + fx.rnd() * (FX.Y1 - FX.Y0 - 24); } while (Math.hypot(x - fx.x, y - fx.y) < 40 && n++ < 20);
+    fx.bonus = {x, y, kind: fx.shield || fx.rnd() < .5 ? 'slow' : 'shield', life: 480}; }
+  if (fx.bonus && --fx.bonus.life <= 0) { fx.bonus = null; fx.bonusT = 600 + Math.floor(fx.rnd() * 360); }
+  if (fx.bonus && Math.hypot(fx.bonus.x - fx.x, fx.bonus.y - fx.y) < 8) { fxBonus(fx.bonus.kind); fx.bonus = null; fx.bonusT = 600 + Math.floor(fx.rnd() * 360); }
   if (fx.cell && Math.hypot(fx.cell.x - fx.x, fx.cell.y - fx.y) < 7) { fx.cells++; fx.cell = null; fx.cellT = 150 + Math.floor(fx.rnd() * 120); fxBeep(990, .07, 'square', 0, .04); setTimeout(() => fxBeep(1320, .1, 'square', 0, .04), 70); }
+}
+function fxBonus(kind) {
+  if (kind === 'shield') { fx.shield = true; [520, 780, 1040].forEach((f, i) => setTimeout(() => fxBeep(f, .08, 'triangle', 0, .05), i * 60)); }
+  else { fx.slow = 300; fxBeep(900, .5, 'sine', 220, .06); }
 }
 function fxDash() { if (fx.mode !== 'play' || fx.dashCd) return; fx.dash = 10; fx.dashCd = 110; fxBeep(300, .15, 'triangle', 900, .05); }
 // un rayon : bord rouge sombre, cœur clair ; pendant l'alerte, un trait pointillé qui clignote de plus en plus vite
 function fxBeamDraw(g, b) {
-  const age = fx.t - b.at, warn = age < b.warn, fade = !warn && age > b.warn + b.fire - 6;
+  const age = fx.bt - b.at, warn = age < b.warn, fade = !warn && age > b.warn + b.fire - 6;
   if (warn && ((age < b.warn - 20 ? age >> 3 : age >> 1) % 2)) return;
   const col = warn ? '#ff4a3a' : '#a8200a', inRoom = (x, y) => x >= FX.X0 && x < FX.X1 && y >= FX.Y0 && y < FX.Y1;
   if (b.kind === 'r') {
@@ -442,7 +456,7 @@ function fxDraw() {
   px(g, '#16141e', FX.X0, FX.Y0, FX.X1 - FX.X0, 1); px(g, '#16141e', FX.X0, FX.Y0, 1, FX.Y1 - FX.Y0);
   // les émetteurs des rayons en cours
   for (const b of fx.beams) {
-    const hot = fx.t - b.at >= b.warn || (fx.tick >> 2) % 2;
+    const hot = fx.bt - b.at >= b.warn || (fx.tick >> 2) % 2;
     if (b.kind === 'r') fxEmitter(g, Math.min(FX.X1 + 3, Math.max(FX.X0 - 4, b.ex)), Math.min(FX.Y1 + 3, Math.max(FX.Y0 - 4, b.ey)), hot);
     else if (b.o === 'h') { fxEmitter(g, FX.X0 - 4, b.p, hot); fxEmitter(g, FX.X1 + 3, b.p, hot); }
     else { fxEmitter(g, b.p, FX.Y0 - 4, hot); fxEmitter(g, b.p, FX.Y1 + 3, hot); }
@@ -453,12 +467,19 @@ function fxDraw() {
     px(g, '#1e1c28', Math.round(fx.x) - 3, Math.round(fx.y) + 5, 7, 2);
     if (fx.dash > 0) for (let i = 1; i < 4; i++) px(g, '#5a5468', Math.round(fx.x - (fx.face ? -1 : 1) * i * 3) - 2, Math.round(fx.y) - 2, 4, 3);
     g.drawImage(s, Math.round(fx.x) - 5, Math.round(fx.y) - 7 - bob); }
+  if (fx.bonus && (fx.bonus.life > 90 || (fx.tick >> 2) % 2)) { const b = fx.bonus, im = FX_BON[b.kind][(fx.tick >> 3) % 2]; px(g, '#1e1c28', Math.round(b.x) - 3, Math.round(b.y) + 5, 7, 1); g.drawImage(im, Math.round(b.x) - (im.width >> 1), Math.round(b.y) - 4 - ((fx.tick >> 4) % 2)); }
+  // le bouclier autour du robot, et l'éclat quand il encaisse un rayon
+  if (fx.mode !== 'over' && (fx.shield || fx.inv && (fx.tick >> 1) % 2)) { const cx = Math.round(fx.x), cy = Math.round(fx.y) - 2; for (let a = 0; a < 24; a++) { const t = a / 24 * Math.PI * 2 + fx.tick * .05; if (a % 3) px(g, a % 6 ? '#4ac8ff' : '#ffffff', cx + Math.cos(t) * 9, cy + Math.sin(t) * 9); } }
+  if (fx.boom) { g.globalAlpha = fx.boom / 20; const r = 30 - fx.boom; for (let a = 0; a < 32; a++) { const t = a / 32 * Math.PI * 2; px(g, '#9ad8ff', fx.x + Math.cos(t) * r, fx.y + Math.sin(t) * r, 2, 2); } g.globalAlpha = 1; }
   for (const b of fx.beams) fxBeamDraw(g, b);
+  if (fx.slow > 0) { g.globalAlpha = .16; px(g, '#7a4aff', FX.X0, FX.Y0, FX.X1 - FX.X0, FX.Y1 - FX.Y0); g.globalAlpha = 1; for (let i = 0; i < 4; i++) { const k = (fx.tick * .6 + i * 28) % 112; px(g, '#b070ff', FX.X0 + k, FX.Y0, 6, 1); px(g, '#b070ff', FX.X1 - k - 6, FX.Y1 - 1, 6, 1); } }
   for (const b of fx.bits) px(g, b.c, b.x, b.y, 2, 2);
   // l'affichage : secondes, piles, élan, points
   pxFont(g, fxSecs() + ' s', 4, 10, '#ffffff', 8);
   g.drawImage(FX_CELL[0], 36, 3); pxFont(g, String(fx.cells), 44, 10, '#9ef07a', 8);
   px(g, '#2a2836', 60, 5, 22, 4); px(g, fx.dashCd ? '#5a5468' : '#ffd84a', 61, 6, Math.round(20 * (1 - fx.dashCd / 110)), 2);
+  if (fx.shield) g.drawImage(FX_BON.shield[0], 86, 3);
+  if (fx.slow > 0) { g.drawImage(FX_BON.slow[0], 95, 3); px(g, '#b070ff', 95, 11, Math.ceil(5 * fx.slow / 300), 1); }
   pxFont(g, String(fxScore()), W - 4, 10, '#ffd84a', 8, 'right');
   if (fx.mode === 'ready') gameText(g, W, [['FAISCEAUX', '#ff4a3a', 12], ['Flèches : bouger', '#ffffff'], ['Maj ou X : élan', '#ffffff'], ['Pointillés = tir', '#b8b0c8'], ['Record ' + (games.best.faisceaux || 0), '#ffd84a'], ['Espace : jouer', '#b8b0c8']], 48);
   if (fx.mode === 'pause') gameText(g, W, [['PAUSE', '#ffffff', 12], ['Espace : reprendre', '#b8b0c8']], 72);
@@ -488,16 +509,26 @@ document.addEventListener('keyup', e => { if (fx) fx.keys.delete(e.key.length ==
   cv.onpointermove = e => { if (fx?.ptr) fx.ptr = at(e); };
   cv.onpointerup = cv.onpointercancel = () => { if (fx) fx.ptr = null; }; }
 $('fxNew').onclick = () => { fxNew(); $('fxNew').blur(); };
-{  // vérification : les rayons touchent ce qu'ils doivent, et la grille laisse toujours un passage d'au moins 12 px pour le robot
-  const keep = fx; fx = null; fxNew(); fx.t = 6000;
+$('fxFs').onclick = () => { $('fxFs').blur(); try { if (document.fullscreenElement) document.exitFullscreen(); else $('fxCanvas').parentElement.requestFullscreen?.().catch(() => {}); } catch {} };
+function fxCheck() {  // vérification : les rayons touchent ce qu'ils doivent, la grille laisse toujours un passage d'au moins 12 px, le bouclier encaisse un rayon, le ralenti freine les rayons
+  const keep = fx, kb = fxBeep, ks = {...fxs}, kbest = games.best.faisceaux, bad = []; fxBeep = () => {}; fx = null; fxNew(); fx.t = 6000;
   const h = {o: 'h', p: 60, w: 4}, ray = {ex: 8, ey: 78, w: 4};
   const lineOk = fxLineHit(h, 80, 61) && !fxLineHit(h, 80, 70), rayOk = fxRayHit(ray, 100, 78, 0) && !fxRayHit(ray, 100, 96, 0) && !fxRayHit(ray, 0, 78, 0);
   let gridOk = true;
   for (let i = 0; i < 300; i++) { fx.beams = []; fx.rnd = seeded(i); fx.x = 64; fx.y = 78; fxSpawn(); const ls = fx.beams.filter(b => b.kind !== 'r');
     if (ls.length > 2) { const lo = ls[0].o === 'h' ? FX.Y0 : FX.X0; let free = 0, most = 0; for (let p = lo; p < lo + FX.X1 - FX.X0; p++) { if (ls.some(b => Math.abs(p - b.p) < b.w / 2 + FX.R)) free = 0; else most = Math.max(most, ++free); } if (most < 12) gridOk = false; } }
-  console.assert(lineOk && rayOk && gridOk, 'faisceaux', {lineOk, rayOk, gridOk});
-  fx = keep;
+  if (!lineOk) bad.push('ligne'); if (!rayOk) bad.push('balayage'); if (!gridOk) bad.push('grille');
+  // un rayon horizontal sur le robot : avec le bouclier il passe, sans il grille
+  const fire = () => { fx.beams = [{kind: 'h', o: 'h', p: fx.y, w: 4, warn: 0, fire: 30, at: fx.bt}]; fx.next = 999; fx.bonusT = fx.cellT = 999; fxUpdate(); };
+  fx.mode = 'play'; fx.rnd = seeded(1); fxBonus('shield'); fire(); if (fx.mode !== 'play' || fx.shield || !fx.inv) bad.push('bouclier'); fx.inv = 0; fire(); if (fx.mode !== 'over') bad.push('sans bouclier');
+  fxNew(); fx.mode = 'play'; fx.next = fx.bonusT = fx.cellT = 999; fxBonus('slow'); const t0 = fx.bt; for (let i = 0; i < 10; i++) fxUpdate(); if (fx.bt - t0 !== 5 || fx.slow !== 290) bad.push('ralenti');
+  fx.bonus = {x: fx.x, y: fx.y, kind: 'shield', life: 100}; fxUpdate(); if (!fx.shield || fx.bonus) bad.push('ramasser');
+  fxBeep = kb; Object.assign(fxs, ks); if (kbest === undefined) delete games.best.faisceaux; else games.best.faisceaux = kbest; fx = keep;
+  return bad.length ? bad.join(', ') : 'ok';
 }
+{ const c = fxCheck(); console.assert(c === 'ok', 'faisceaux', c); }
+$('fxCanvas').__fx = {st: () => fx, check: fxCheck, bonus: k => fxBonus(k)};
+
 ctx.onOpen(() => {
   if (!fx || !fx.g) { fxNew(); fx.g = $('fxCanvas').getContext('2d'); }
   gameLoop(fx, 'faisceaux', fxUpdate, fxDraw); fxInfo();

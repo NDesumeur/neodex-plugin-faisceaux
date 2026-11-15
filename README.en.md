@@ -10,6 +10,7 @@ A pixel art dodging game: a little robot must survive in a test room where emitt
 - **Shift** or **X**: dash, the robot zips away. The yellow gauge at the top shows when it is recharged.
 - **Mouse** or **finger**: the robot follows the pointer while you press; two quick taps dash.
 - **P** or **Esc**: pause.
+- **Full screen**: the button of the same name; Esc to leave it.
 
 ## How it works
 
@@ -19,6 +20,9 @@ A pixel art dodging game: a little robot must survive in a test room where emitt
 - **Crosses** aim where you are when the warning starts: move.
 - **Sweeps** start from a wall and turn. The two warning lines show the angle they cover: get out of it.
 - **Batteries** appear far from you: 50 points each. Every second survived gives 10 points.
+- **Power-ups** appear every 10 to 16 seconds and stay 8 seconds (they blink before leaving):
+  - the **blue bubble**: a shield surrounds the robot and takes the next beam, then it blinks for a moment, safe from everything;
+  - the **purple hourglass**: for 5 seconds, beams (warnings, shots and sweeps) run at half speed, but you don't. The room turns purple and a gauge under the hourglass shows the time left.
 - Beams come more and more often, with less warning, up to 100 seconds.
 
 ## Stats
