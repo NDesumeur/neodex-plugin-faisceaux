@@ -1,9 +1,9 @@
 {
   "pluginId": "neodex.faisceaux",
   "repo": "NDesumeur/neodex-plugin-faisceaux",
-  "version": "1.0.1",
-  "sha256": "ca48b6f1ecf5a2d59922b3ad279c470f70304ebe042664858b18e7b552e12a4e",
-  "approvedAt": "2026-11-12T17:01:01.592Z",
+  "version": "1.1.0",
+  "sha256": "b8862258c4fdfe5de9e02281f05526581c5ea809b3bc442ae9f5cf1fbcf03a59",
+  "approvedAt": "2026-11-16T04:14:35.838Z",
   "neobase": ">=4.0.0",
-  "signature": "9LwNf595omp0GVcEkGOSl5hzdq5N2gkv17CqfY258M/JIetcLgtSPCYYLr76KeXe88+C4j9rx4Bx3JE7w6tqDg=="
+  "signature": "PBn1NCN1CNY8z+f2mAAkyb02FTJ0mKfkW4Wydds21WxgGlRgSDEX5EwkAoSVFv5fE3ckSu4npYf6xuwofastBQ=="
 }
