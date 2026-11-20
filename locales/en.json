@@ -63,7 +63,6 @@
  "Pointillés = tir": "Dots = shot",
  "RECORDS": "RECORDS",
  "Record": "Best",
- "Record.": "Best score.",
  "Shift": "Shift",
  "Temps survécu": "Time survived",
  "Ua": "Ua",
@@ -83,5 +82,6 @@
  "seconde,": "second,",
  "secondes": "seconds",
  "secondes,": "seconds,",
- "sans bouclier": "without shield"
+ "sans bouclier": "without shield",
+ "Rien n'est synchronisé : tes records restent sur cet appareil.": "Nothing is synced: your records stay on this device."
 }
