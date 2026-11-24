@@ -4,6 +4,17 @@ A pixel art dodging game: a little robot must survive in a test room where emitt
 
 *Version française : [README.md](README.md)*
 
+
+## Room bosses (new in 1.2.0)
+
+At 45 seconds, then every minute, a boss takes over the room for 20 seconds (a bar in the bottom wall shows the time left):
+
+- **the Projector**, at the top, fires beams aimed at the robot and sometimes a cross;
+- **the Prism**, in the centre, spins three beams one way then the other (touching it costs a lot);
+- **the Clock** chains alternating grids, always with a gap.
+
+Hold on to the end and the boss explodes for 250 points, then 500, 750…
+
 ## Controls
 
 - **Arrows** or **WASD** (ZQSD too): move in 8 directions.

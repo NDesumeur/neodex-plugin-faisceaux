@@ -23,6 +23,9 @@ module.exports = async ({ pj, sleep }) => {
   if (process.env.NEO_SHOTS) { await sleep(1500); await shot('4-tir'); }
   await C(`fx.shield = false; fx.slow = 0; fx.inv = 0; return 0;`); await sleep(9000);
   if (process.env.NEO_SHOTS) await shot('5-fin');
+  // les trois boss, pour l'image (le robot est protégé le temps des images)
+  for (const k of [0, 1, 2]) { await pj(`(() => { const T = document.getElementById('fxCanvas').__fx, fx = T.st(); if (fx.mode !== 'play') { fx.mode = 'play'; } fx.inv = 1e9; fx.beams = []; fx.boss = {kind: ${k}, n: ${k}, t: 0}; fx.banner = null; return 0; })()`); await sleep(2600); await shot('5-boss-' + k); }
+  const bk = await pj(`document.getElementById('fxCanvas').__fx.st().boss?.kind`); if (bk !== 2) throw new Error('boss affiché : ' + bk);
   const errs = await pj(`window.__e.join(' | ')`); if (errs) throw new Error('erreur : ' + errs);
   // plein écran, et la zone de jeu qui tient dans la fenêtre
   await pj(`document.fullscreenElement && document.exitFullscreen(), 0`); await sleep(200);
@@ -33,5 +36,5 @@ module.exports = async ({ pj, sleep }) => {
   const L = await pj(`(() => { const r = document.getElementById('fxCanvas').getBoundingClientRect(); let s = 0; for (let e = document.getElementById('fxCanvas').parentElement; e; e = e.parentElement) s += e.scrollTop; return { bottom: Math.round(r.bottom + s), h: Math.round(r.height), wh: innerHeight, ww: innerWidth, sw: document.documentElement.scrollWidth }; })()`);
   if (process.env.NEO_FIT_LOG) console.log('FIT', JSON.stringify(L));
   if (L.bottom > L.wh + 1 || L.sw > L.ww + 1 || L.h < 300) throw new Error('la zone de jeu dépasse la fenêtre ou reste petite : ' + JSON.stringify(L));
-  return 'vérification ok · ' + first + ' · bouclier · ralenti · plein écran · ' + L.h + ' px dans ' + L.ww + '×' + L.wh;
+  return 'vérification ok · ' + first + ' · bouclier · ralenti · trois boss · plein écran · ' + L.h + ' px dans ' + L.ww + '×' + L.wh;
 };

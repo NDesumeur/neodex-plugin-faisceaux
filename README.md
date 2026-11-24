@@ -4,6 +4,17 @@ Un jeu d'esquive en pixel art : un petit robot doit survivre dans une salle d'es
 
 *English version: [README.en.md](README.en.md)*
 
+
+## Les boss de salle (nouveau en 1.2.0)
+
+À 45 secondes, puis toutes les minutes, un boss prend la salle pendant 20 secondes (une barre dans le mur du bas montre le temps qui reste) :
+
+- **le Projecteur**, en haut, tire des rayons visés sur le robot et parfois une croix ;
+- **le Prisme**, au centre, fait tourner trois rayons dans un sens puis dans l'autre (le toucher coûte cher) ;
+- **l'Horloge** enchaîne des grilles qui alternent, toujours avec un passage.
+
+Tenu jusqu'au bout, le boss explose et rapporte 250 points, puis 500, 750…
+
 ## Commandes
 
 - **Flèches** ou **ZQSD** (WASD aussi) : bouger, dans les 8 directions.

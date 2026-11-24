@@ -6,7 +6,7 @@ const HTML = `<div class="appWrap wide">
     <div class="gSide">
       <div class="sysCard"><b>RECORDS</b><div class="gStats" id="fxStats"></div></div>
       <div class="row"><button class="btn main" id="fxNew">NOUVELLE PARTIE</button><button class="btn" id="fxFs">PLEIN ÉCRAN</button></div>
-      <div class="hint">Un trait pointillé qui clignote annonce un rayon : il tire quand le clignotement s'accélère puis s'arrête. Les croix visent l'endroit où tu es, les balayages tournent depuis un mur (les deux traits montrent l'angle couvert), les grilles laissent toujours un passage. L'élan te fait filer d'un coup, puis se recharge (la jauge jaune en haut). Ramasse les piles : 50 points chacune, plus 10 points par seconde.</div><div class="hint">Des bonus apparaissent de temps en temps : la bulle bleue est un bouclier qui encaisse un rayon, le sablier violet ralentit les rayons pendant 5 secondes (pas toi).</div>
+      <div class="hint">Un trait pointillé qui clignote annonce un rayon : il tire quand le clignotement s'accélère puis s'arrête. Les croix visent l'endroit où tu es, les balayages tournent depuis un mur (les deux traits montrent l'angle couvert), les grilles laissent toujours un passage. L'élan te fait filer d'un coup, puis se recharge (la jauge jaune en haut). Ramasse les piles : 50 points chacune, plus 10 points par seconde. À 45 s, puis toutes les minutes, un boss prend la salle pendant 20 s : le Projecteur vise, le Prisme fait tourner trois rayons depuis le centre (ne le touche pas), l'Horloge enchaîne les grilles. Tiens jusqu'au bout : 250 points par boss, de plus en plus.</div><div class="hint">Des bonus apparaissent de temps en temps : la bulle bleue est un bouclier qui encaisse un rayon, le sablier violet ralentit les rayons pendant 5 secondes (pas toi).</div>
     </div></div>
 </div>`;
 const CSS = `.gMain{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
@@ -350,13 +350,45 @@ const FX_FLOOR = (() => { const c = el('canvas'); c.width = c.height = 16; const
   for (let i = 0; i < 6; i++) px(g, '#2f2d3b', 4 + i * 2, 7 + (i % 2)); return c; })();
 const fxDiff = () => Math.min(1, fx.t / (60 * 100));  // au plus dur après 100 s
 const fxSecs = () => Math.floor(fx.t / 60);
-const fxScore = () => fxSecs() * 10 + fx.cells * 50;
+const fxScore = () => fxSecs() * 10 + fx.cells * 50 + (fx.bossPts || 0);
+const FX_BOSS = [{name: 'LE PROJECTEUR', c: ['#ffd84a', '#c89a1a']}, {name: 'LE PRISME', c: ['#b070ff', '#6a3ab8']}, {name: 'L\'HORLOGE', c: ['#7ae0ff', '#2a8ab8']}];
+const FX_BDUR = 1200;
+const fxBossXY = () => fx.boss.kind === 1 ? [(FX.X0 + FX.X1) / 2, (FX.Y0 + FX.Y1) / 2] : [(FX.X0 + FX.X1) / 2, FX.Y0 - 2];
+function fxBossStep(step) {  // le boss : ses attaques à son rythme ; tenu jusqu'au bout, il explose
+  const B = fx.boss, t0 = Math.floor(B.t); B.t += step; const t = Math.floor(B.t); if (t === t0 && step < 1) return;
+  const [bx, by] = fxBossXY(), d = .3 * Math.min(1, B.n / 3), at = fx.bt;
+  if (B.t >= FX_BDUR) { fx.boss = null; fx.beams = []; const pts = 250 * (B.n + 1); fx.bossPts = (fx.bossPts || 0) + pts; fx.bossWins = (fx.bossWins || 0) + 1; fx.nextBoss = fxSecs() + 60; fx.next = 90;
+    fx.banner = {text: FX_BOSS[B.kind].name + ' VAINCU', sub: '+' + pts + ' points', t: 110}; for (let i = 0; i < 24; i++) { const a = i / 24 * 6.283; fx.bits.push({x: bx, y: by + 6, vx: Math.cos(a) * 1.5, vy: Math.sin(a) * 1.5, t: 40, c: FX_BOSS[B.kind].c[i % 2]}); }
+    [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => fxBeep(f, .12, 'square', 0, .05), i * 90)); return; }
+  if (t < 70 || t > FX_BDUR - 40) return;  // le temps de le voir arriver, et un répit à la fin
+  if (B.kind === 0) {  // le Projecteur : des rayons visés sur le robot depuis son œil, et parfois une croix
+    if (t % Math.round(64 - 14 * d * 3) === 0) { const a = Math.atan2(fx.y - by, fx.x - bx); fx.beams.push({kind: 'r', ex: bx, ey: by, a0: a - .3, a1: a + .3, w: 4, warn: 38, fire: 40, at}); fxBeep(700, .05, 'square', 0, .025); }
+    if (t % 300 === 150) { fx.beams.push({kind: 'h', o: 'h', p: fx.y, w: 4, warn: 60, fire: 30, at}, {kind: 'v', o: 'v', p: fx.x, w: 4, warn: 60, fire: 30, at}); }
+  } else if (B.kind === 1) {  // le Prisme : trois rayons qui tournent depuis le centre, dans un sens puis dans l'autre
+    if (t === 70 || t === 640) { const dir = t === 70 ? 1 : -1, a = fx.rnd() * 6.283; for (let k = 0; k < 3; k++) fx.beams.push({kind: 'r', ex: bx, ey: by, a0: a + k * 2.094, a1: a + k * 2.094 + dir * (3.6 + d * 2), w: 4, warn: 70, fire: 460, at}); fxBeep(300, .3, 'sawtooth', 120, .04); }
+  } else if (t % Math.round(58 - d * 30) === 0) {  // l'Horloge : des grilles qui alternent, toujours avec un passage
+    const o = (t / 58 | 0) % 2 ? 'h' : 'v', n = 5, gap = Math.floor(fx.rnd() * n), lo = o === 'h' ? FX.Y0 : FX.X0, ix = FX.X1 - FX.X0;
+    for (let i = 0; i < n; i++) if (i !== gap) fx.beams.push({kind: o, o, p: lo + (i + .5) * ix / n, w: 6, warn: 46, fire: 30, at}); fxBeep(1200, .04, 'square', 0, .03);
+  }
+}
+function fxBossDraw(g) {  // trois machines à un seul œil
+  const B = fx.boss; if (!B) return; const [bx, by] = fxBossXY(), [L, D] = FX_BOSS[B.kind].c, x = Math.round(bx), y = Math.round(by), come = Math.min(1, B.t / 60);
+  g.globalAlpha = come;
+  if (B.kind === 1) { const a = fx.tick * .04; for (let k = 0; k < 3; k++) { const t = a + k * 2.094; for (let r = 0; r < 9; r++) px(g, r > 6 ? '#14101c' : r % 2 ? L : D, x + Math.cos(t) * r - 1, y + Math.sin(t) * r - 1, 3, 3); }
+    px(g, '#14101c', x - 5, y - 5, 11, 11); px(g, D, x - 4, y - 4, 9, 9); px(g, L, x - 3, y - 4, 7, 2); }
+  else { px(g, '#14101c', x - 13, y - 4, 27, 13); px(g, D, x - 12, y - 3, 25, 11); px(g, L, x - 11, y - 3, 23, 3);
+    if (B.kind === 2) for (let k = 0; k < 12; k++) { const t = k / 12 * 6.283; px(g, '#14101c', x + Math.cos(t) * 10, y + 3 + Math.sin(t) * 5, 1, 1); } }
+  const ex = x, ey = B.kind === 1 ? y : y + 3, la = Math.atan2(fx.y - ey, fx.x - ex);
+  px(g, '#14101c', ex - 3, ey - 3, 7, 7); px(g, '#ffffff', ex - 2, ey - 2, 5, 5); px(g, '#ff4a3a', Math.round(ex - 1 + Math.cos(la) * 1.5), Math.round(ey - 1 + Math.sin(la) * 1.5), 2, 2);
+  if (B.kind === 2) { const h = B.t / FX_BDUR * 6.283 - 1.57; px(g, '#14101c', Math.round(x + Math.cos(h) * 8), Math.round(y + 3 + Math.sin(h) * 4), 2, 2); }  // l'aiguille fait le tour en 20 s
+  g.globalAlpha = 1;
+}
 let fxBeep = function (f, d, type = 'square', slide = 0, vol = .04) { try { fxac ??= new AudioContext(); const o = fxac.createOscillator(), g = fxac.createGain(), t = fxac.currentTime; o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(fxac.destination); o.start(t); o.stop(t + d); } catch {} }
 // une nouvelle partie garde le même objet : la boucle du jeu (gameLoop) continue de tourner dessus
 const renew = (old, o) => { if (!old) return o; for (const k of Object.keys(old)) if (k !== 'raf') delete old[k]; return Object.assign(old, o); };
 function fxNew() {
   const g = fx?.g;
-  fx = renew(fx, {g, mode: 'ready', tick: 0, seen: 0, t: 0, x: FX.W / 2, y: (FX.Y0 + FX.Y1) / 2, face: 0, keys: new Set(), dash: 0, dashCd: 0, beams: [], next: 90, cells: 0, cell: null, cellT: 120, bt: 0, bonus: null, bonusT: 600, shield: false, inv: 0, slow: 0, boom: 0, dead: 0, record: false, bits: [], rnd: seeded(Date.now() % 1e9)});
+  fx = renew(fx, {g, mode: 'ready', tick: 0, seen: 0, t: 0, x: FX.W / 2, y: (FX.Y0 + FX.Y1) / 2, face: 0, keys: new Set(), dash: 0, dashCd: 0, beams: [], next: 90, cells: 0, cell: null, cellT: 120, bt: 0, bonus: null, bonusT: 600, shield: false, inv: 0, slow: 0, boom: 0, dead: 0, record: false, bits: [], rnd: seeded(Date.now() % 1e9), boss: null, nextBoss: 45, bossPts: 0, bossWins: 0, banner: null});
   fxInfo();
 }
 // les rayons : 'h' / 'v' = une ligne d'un mur à l'autre (p = sa position, w = son épaisseur) ; 'r' = un rayon qui balaie un arc depuis un émetteur du mur
@@ -384,7 +416,7 @@ function fxSpawn() {
 function fxDie() {
   fx.mode = 'over'; fx.dead = 0; fx.keys.clear(); fx.ptr = null;
   for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, v = .6 + (i % 3) * .5; fx.bits.push({x: fx.x, y: fx.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 30 + (i % 4) * 8, c: i % 3 ? '#9a94a8' : '#ffd84a'}); }
-  fxs.games++; fxs.cells += fx.cells; fxs.secs += fxSecs(); fx.record = best('faisceaux', fxScore()); saveGames(); fxInfo();
+  fxs.games++; fxs.cells += fx.cells; fxs.secs += fxSecs(); fxs.bosses = (fxs.bosses || 0) + (fx.bossWins || 0); fx.record = best('faisceaux', fxScore()); saveGames(); fxInfo();
   fxBeep(220, .5, 'sawtooth', 40, .07);
 }
 function fxUpdate() {
@@ -401,7 +433,10 @@ function fxUpdate() {
   const sp = fx.dash > 0 ? (fx.dash--, FX.DASH) : FX.SP;
   fx.x = Math.min(FX.X1 - 5, Math.max(FX.X0 + 5, fx.x + dx * sp)); fx.y = Math.min(FX.Y1 - 5, Math.max(FX.Y0 + 5, fx.y + dy * sp));
   // les rayons : alerte, tir, fin
-  if ((fx.next -= step) <= 0) { fxSpawn(); fx.next = Math.round(Math.max(70 - 30 * fxDiff() + 14, 115 - 55 * fxDiff() + fx.rnd() * 30)); }  // une seule alerte à la fois : deux rayons qui tombent ensemble étaient impossibles à éviter
+  if (!fx.boss && fxSecs() >= fx.nextBoss && !fx.beams.length) { const n = fx.bossWins || 0; fx.boss = {kind: n % 3, n, t: 0}; fx.banner = {text: 'BOSS : ' + FX_BOSS[n % 3].name, sub: 'tiens 20 secondes', t: 100}; fxBeep(110, .8, 'sawtooth', 220, .06); }
+  if (fx.banner && --fx.banner.t <= 0) fx.banner = null;
+  if (fx.boss) { fxBossStep(step); if (fx.boss?.kind === 1 && fx.boss.t > 40) { const [bx, by] = fxBossXY(); if (Math.hypot(fx.x - bx, fx.y - by) < 8 && !fx.inv) { if (!fx.shield) return fxDie(); fx.shield = false; fx.inv = 50; fx.boom = 20; } } }
+  else if ((fx.next -= step) <= 0) { fxSpawn(); fx.next = Math.round(Math.max(70 - 30 * fxDiff() + 14, 115 - 55 * fxDiff() + fx.rnd() * 30)); }  // une seule alerte à la fois : deux rayons qui tombent ensemble étaient impossibles à éviter
   for (const b of fx.beams) {
     const age = fx.bt - b.at;
     if (age === b.warn) fxBeep(b.kind === 'r' ? 140 : 110, .25, 'sawtooth', 60, .03);
@@ -471,7 +506,10 @@ function fxDraw() {
   // le bouclier autour du robot, et l'éclat quand il encaisse un rayon
   if (fx.mode !== 'over' && (fx.shield || fx.inv && (fx.tick >> 1) % 2)) { const cx = Math.round(fx.x), cy = Math.round(fx.y) - 2; for (let a = 0; a < 24; a++) { const t = a / 24 * Math.PI * 2 + fx.tick * .05; if (a % 3) px(g, a % 6 ? '#4ac8ff' : '#ffffff', cx + Math.cos(t) * 9, cy + Math.sin(t) * 9); } }
   if (fx.boom) { g.globalAlpha = fx.boom / 20; const r = 30 - fx.boom; for (let a = 0; a < 32; a++) { const t = a / 32 * Math.PI * 2; px(g, '#9ad8ff', fx.x + Math.cos(t) * r, fx.y + Math.sin(t) * r, 2, 2); } g.globalAlpha = 1; }
+  fxBossDraw(g);
   for (const b of fx.beams) fxBeamDraw(g, b);
+  if (fx.boss) { const k = 1 - fx.boss.t / FX_BDUR, [L] = FX_BOSS[fx.boss.kind].c; px(g, '#0e0c14', 13, FX.H - 5, 102, 4); px(g, L, 14, FX.H - 4, Math.ceil(100 * k), 2); }  // le temps qu'il reste à tenir, dans le mur du bas
+  if (fx.banner && fx.mode === 'play') gameText(g, W, [[fx.banner.text, '#ff8a3a', 8], [fx.banner.sub, '#ffffff']], 60);
   if (fx.slow > 0) { g.globalAlpha = .16; px(g, '#7a4aff', FX.X0, FX.Y0, FX.X1 - FX.X0, FX.Y1 - FX.Y0); g.globalAlpha = 1; for (let i = 0; i < 4; i++) { const k = (fx.tick * .6 + i * 28) % 112; px(g, '#b070ff', FX.X0 + k, FX.Y0, 6, 1); px(g, '#b070ff', FX.X1 - k - 6, FX.Y1 - 1, 6, 1); } }
   for (const b of fx.bits) px(g, b.c, b.x, b.y, 2, 2);
   // l'affichage : secondes, piles, élan, points
@@ -487,7 +525,7 @@ function fxDraw() {
   if (fx.tick % 30 === 0) g.canvas.setAttribute('aria-label', 'Faisceaux : ' + (fx.mode === 'play' ? fxSecs() + (fxSecs() > 1 ? ' secondes, ' : ' seconde, ') + fx.cells + (fx.cells > 1 ? ' piles, ' : ' pile, ') + fx.beams.length + (fx.beams.length > 1 ? ' rayons' : ' rayon') : fx.mode === 'over' ? 'partie finie après ' + fxSecs() + ' secondes' : fx.mode === 'pause' ? 'pause' : 'prêt'));
 }
 function fxInfo() {
-  $('fxStats').replaceChildren(...[['Meilleur score', games.best.faisceaux || 0], ['Parties', fxs.games], ['Piles', fxs.cells], ['Temps survécu', Math.floor(fxs.secs / 60) + ' min ' + (fxs.secs % 60) + ' s']].flatMap(([a, b]) => [el('span', '', a), el('b', '', String(b))]));
+  $('fxStats').replaceChildren(...[['Meilleur score', games.best.faisceaux || 0], ['Parties', fxs.games], ['Piles', fxs.cells], ['Boss vaincus', fxs.bosses || 0], ['Temps survécu', Math.floor(fxs.secs / 60) + ' min ' + (fxs.secs % 60) + ' s']].flatMap(([a, b]) => [el('span', '', a), el('b', '', String(b))]));
 }
 function fxStart() {
   if (fx.mode === 'ready' || fx.mode === 'pause') fx.mode = 'play';
@@ -523,11 +561,18 @@ function fxCheck() {  // vérification : les rayons touchent ce qu'ils doivent, 
   fx.mode = 'play'; fx.rnd = seeded(1); fxBonus('shield'); fire(); if (fx.mode !== 'play' || fx.shield || !fx.inv) bad.push('bouclier'); fx.inv = 0; fire(); if (fx.mode !== 'over') bad.push('sans bouclier');
   fxNew(); fx.mode = 'play'; fx.next = fx.bonusT = fx.cellT = 999; fxBonus('slow'); const t0 = fx.bt; for (let i = 0; i < 10; i++) fxUpdate(); if (fx.bt - t0 !== 5 || fx.slow !== 290) bad.push('ralenti');
   fx.bonus = {x: fx.x, y: fx.y, kind: 'shield', life: 100}; fxUpdate(); if (!fx.shield || fx.bonus) bad.push('ramasser');
+  // les boss : il arrive à 45 s et coupe les rayons ordinaires ; le Prisme fait tourner trois rayons ; tenu 20 s, il rapporte ses points
+  fxNew(); fx.mode = 'play'; fx.t = 45 * 60; fx.next = 1; fx.bonusT = fx.cellT = 1e9; fx.x = FX.X0 + 6; fx.y = FX.Y0 + 6; fx.inv = 1e9; fxUpdate();
+  if (fx.boss?.kind !== 0) bad.push('pas de boss à 45 s'); for (let i = 0; i < 200; i++) fxUpdate(); if (!fx.beams.length || fx.beams.some(b => b.kind === 'r' && Math.abs(b.ex - (FX.X0 + FX.X1) / 2) > 1)) bad.push('le Projecteur ne vise pas');
+  for (let i = 0; i < FX_BDUR; i++) fxUpdate(); if (fx.boss || fx.bossWins !== 1 || fxScore() < 250) bad.push('boss vaincu ' + fx.bossWins + ' ' + fxScore());
+  fx.boss = {kind: 1, n: 1, t: 0}; fx.beams = []; for (let i = 0; i < 300; i++) fxUpdate(); const pr = fx.beams.filter(b => b.kind === 'r');
+  if (pr.length !== 3) bad.push('Prisme : ' + pr.length + ' rayons'); else { const a1 = fxAng(pr[0]); fxUpdate(); fxUpdate(); if (fxAng(pr[0]) === a1) bad.push('les rayons du Prisme ne tournent pas'); }
+  fx.inv = 0; fx.shield = false; const [px0, py0] = fxBossXY(); fx.x = px0 + 3; fx.y = py0; fxUpdate(); if (fx.mode !== 'over') bad.push('toucher le Prisme');
   fxBeep = kb; Object.assign(fxs, ks); if (kbest === undefined) delete games.best.faisceaux; else games.best.faisceaux = kbest; fx = keep;
   return bad.length ? bad.join(', ') : 'ok';
 }
 { const c = fxCheck(); console.assert(c === 'ok', 'faisceaux', c); }
-$('fxCanvas').__fx = {st: () => fx, check: fxCheck, bonus: k => fxBonus(k)};
+$('fxCanvas').__fx = {st: () => fx, check: fxCheck, bonus: k => fxBonus(k), FX};
 
 ctx.onOpen(() => {
   if (!fx || !fx.g) { fxNew(); fx.g = $('fxCanvas').getContext('2d'); }
