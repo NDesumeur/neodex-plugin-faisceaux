@@ -1,7 +1,7 @@
 {
   "id": "neodex.faisceaux",
   "name": "Faisceaux",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "NDesumeur",
   "description": "Jeu d'esquive : un petit robot doit survivre dans une salle d'essai où des émetteurs tirent des rayons. Un trait qui clignote annonce chaque tir : lignes, grilles avec un passage, croix visées sur toi et balayages qui tournent. Un élan pour filer d'un coup, des piles à ramasser, des bonus (bouclier qui encaisse un rayon, ralenti des rayons), de plus en plus de rayons. Plein écran, score, temps et record. Trois boss de salle à tenir 20 secondes : le Projecteur, le Prisme et l'Horloge.",
   "icon": "icon.png",
@@ -22,5 +22,51 @@
   "sdk": "2.1.0",
   "permissions": [
     "storage"
+  ],
+  "succes": [
+    {
+      "id": "premier",
+      "nom": "Premier essai",
+      "texte": "Finir une première partie"
+    },
+    {
+      "id": "m1",
+      "nom": "Une minute debout",
+      "texte": "Tenir une minute dans une partie"
+    },
+    {
+      "id": "m3",
+      "nom": "Increvable",
+      "texte": "Tenir 3 minutes dans une partie"
+    },
+    {
+      "id": "boss",
+      "nom": "Le gros émetteur",
+      "texte": "Survivre à un premier boss"
+    },
+    {
+      "id": "boss10",
+      "nom": "Chasseur de boss",
+      "texte": "Survivre à 10 boss en tout"
+    },
+    {
+      "id": "cellules",
+      "nom": "Batteries pleines",
+      "texte": "Ramasser 200 cellules en tout"
+    },
+    {
+      "id": "s2000",
+      "nom": "Robot d'élite",
+      "texte": "Marquer 2 000 points en une partie",
+      "cache": true
+    }
+  ],
+  "records": [
+    {
+      "id": "score",
+      "nom": "Meilleur score",
+      "sens": "haut",
+      "format": "nombre"
+    }
   ]
 }

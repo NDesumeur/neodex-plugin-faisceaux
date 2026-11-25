@@ -303,6 +303,9 @@ export default async function (ctx) {
   const best = (k, v) => { const b = games.best[k]; if (v > (b ?? 0)) {  // un score nul n'est jamais un record
     games.best[k] = v; saveGames(); return true; } return false; };
   const gstore = (k, init) => (games[k] ??= init);
+  // les trophées de NeoDex (3.4.8 et plus) : succès et records déclarés dans plugin.json ; sur un NeoDex plus ancien, rien ne se passe
+  const trophy = id => { ctx.games?.unlock(id).catch(() => {}); };
+  const trophyRecord = (id, v) => { if (v != null && Number.isFinite(+v)) ctx.games?.record(id, +v).catch(() => {}); };
 function gameLoop(st, appKey, update, draw) {
   cancelAnimationFrame(st.raf);
   const STEP = 1000 / 60; let acc = 0, last = performance.now();
@@ -416,7 +419,7 @@ function fxSpawn() {
 function fxDie() {
   fx.mode = 'over'; fx.dead = 0; fx.keys.clear(); fx.ptr = null;
   for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, v = .6 + (i % 3) * .5; fx.bits.push({x: fx.x, y: fx.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 30 + (i % 4) * 8, c: i % 3 ? '#9a94a8' : '#ffd84a'}); }
-  fxs.games++; fxs.cells += fx.cells; fxs.secs += fxSecs(); fxs.bosses = (fxs.bosses || 0) + (fx.bossWins || 0); fx.record = best('faisceaux', fxScore()); saveGames(); fxInfo();
+  fxs.games++; fxs.cells += fx.cells; fxs.secs += fxSecs(); fxs.longest = Math.max(fxs.longest || 0, fxSecs()); fxs.bosses = (fxs.bosses || 0) + (fx.bossWins || 0); fx.record = best('faisceaux', fxScore()); saveGames(); fxInfo();
   fxBeep(220, .5, 'sawtooth', 40, .07);
 }
 function fxUpdate() {
@@ -525,6 +528,7 @@ function fxDraw() {
   if (fx.tick % 30 === 0) g.canvas.setAttribute('aria-label', 'Faisceaux : ' + (fx.mode === 'play' ? fxSecs() + (fxSecs() > 1 ? ' secondes, ' : ' seconde, ') + fx.cells + (fx.cells > 1 ? ' piles, ' : ' pile, ') + fx.beams.length + (fx.beams.length > 1 ? ' rayons' : ' rayon') : fx.mode === 'over' ? 'partie finie après ' + fxSecs() + ' secondes' : fx.mode === 'pause' ? 'pause' : 'prêt'));
 }
 function fxInfo() {
+  setTimeout(fxTrophies);
   $('fxStats').replaceChildren(...[['Meilleur score', games.best.faisceaux || 0], ['Parties', fxs.games], ['Piles', fxs.cells], ['Boss vaincus', fxs.bosses || 0], ['Temps survécu', Math.floor(fxs.secs / 60) + ' min ' + (fxs.secs % 60) + ' s']].flatMap(([a, b]) => [el('span', '', a), el('b', '', String(b))]));
 }
 function fxStart() {
@@ -574,6 +578,13 @@ function fxCheck() {  // vérification : les rayons touchent ce qu'ils doivent, 
 { const c = fxCheck(); console.assert(c === 'ok', 'faisceaux', c); }
 $('fxCanvas').__fx = {st: () => fx, check: fxCheck, bonus: k => fxBonus(k), FX};
 
+// les trophées, tirés des statistiques et des records gardés (aussi à l'ouverture : ce qui a été fait avant compte)
+function fxTrophies() {
+  const b = games.best.faisceaux, sig = [b, fxs.games, fxs.cells, fxs.bosses, fxs.longest].join(); if (sig === fxTrophies.sig) return; fxTrophies.sig = sig;
+  trophyRecord('score', b || null);
+  if (fxs.games >= 1) trophy('premier'); if (fxs.longest >= 60) trophy('m1'); if (fxs.longest >= 180) trophy('m3');
+  if (fxs.bosses >= 1) trophy('boss'); if (fxs.bosses >= 10) trophy('boss10'); if (fxs.cells >= 200) trophy('cellules'); if (b >= 2000) trophy('s2000');
+}
 ctx.onOpen(() => {
   if (!fx || !fx.g) { fxNew(); fx.g = $('fxCanvas').getContext('2d'); }
   gameLoop(fx, 'faisceaux', fxUpdate, fxDraw); fxInfo();

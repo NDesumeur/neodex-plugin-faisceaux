@@ -97,5 +97,19 @@
  "Prisme :": "Prism:",
  "les rayons du Prisme ne tournent pas": "the Prism beams do not turn",
  "toucher le Prisme": "touching the Prism",
- "Jeu d'esquive : un petit robot doit survivre dans une salle d'essai où des émetteurs tirent des rayons. Un trait qui clignote annonce chaque tir : lignes, grilles avec un passage, croix visées sur toi et balayages qui tournent. Un élan pour filer d'un coup, des piles à ramasser, des bonus (bouclier qui encaisse un rayon, ralenti des rayons), de plus en plus de rayons. Plein écran, score, temps et record. Trois boss de salle à tenir 20 secondes : le Projecteur, le Prisme et l'Horloge.": "A dodging game: a little robot must survive in a test room where emitters fire beams. A blinking line announces every shot: lines, grids with a gap, crosses aimed at you and turning sweeps. A dash to zip away, batteries to pick up, power-ups (a shield that takes one beam, beams slowed down), more and more beams. Full screen, score, time and record. Three room bosses to survive for 20 seconds: the Projector, the Prism and the Clock."
+ "Jeu d'esquive : un petit robot doit survivre dans une salle d'essai où des émetteurs tirent des rayons. Un trait qui clignote annonce chaque tir : lignes, grilles avec un passage, croix visées sur toi et balayages qui tournent. Un élan pour filer d'un coup, des piles à ramasser, des bonus (bouclier qui encaisse un rayon, ralenti des rayons), de plus en plus de rayons. Plein écran, score, temps et record. Trois boss de salle à tenir 20 secondes : le Projecteur, le Prisme et l'Horloge.": "A dodging game: a little robot must survive in a test room where emitters fire beams. A blinking line announces every shot: lines, grids with a gap, crosses aimed at you and turning sweeps. A dash to zip away, batteries to pick up, power-ups (a shield that takes one beam, beams slowed down), more and more beams. Full screen, score, time and record. Three room bosses to survive for 20 seconds: the Projector, the Prism and the Clock.",
+ "Premier essai": "First test",
+ "Finir une première partie": "Finish your first game",
+ "Une minute debout": "A minute standing",
+ "Tenir une minute dans une partie": "Survive a minute in one game",
+ "Increvable": "Unstoppable",
+ "Tenir 3 minutes dans une partie": "Survive 3 minutes in one game",
+ "Le gros émetteur": "The big emitter",
+ "Survivre à un premier boss": "Survive your first boss",
+ "Chasseur de boss": "Boss hunter",
+ "Survivre à 10 boss en tout": "Survive 10 bosses in total",
+ "Batteries pleines": "Fully charged",
+ "Ramasser 200 cellules en tout": "Collect 200 cells in total",
+ "Robot d'élite": "Elite robot",
+ "Marquer 2 000 points en une partie": "Score 2,000 points in one game"
 }
